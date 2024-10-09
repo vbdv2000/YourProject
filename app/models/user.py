@@ -1,15 +1,21 @@
-from sqlalchemy import Column, Integer, String, ForeignKey
-from sqlalchemy.orm import relationship
-from app.database import Base
+# app/models/user.py
+from sqlmodel import SQLModel, Field, Relationship
+from typing import List, Optional
 
-class User(Base):
+class UserBase(SQLModel):
+    name: str
+    email: str = Field(index=True)
+
+class User(UserBase, table=True):
     __tablename__ = "users"
-    
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, index=True)
-    email = Column(String, unique=True, index=True)
-    hashed_password = Column(String)
-    projects = relationship("Project", back_populates="owner")
-    
-    def verify_password(self, password: str):
-        return bcrypt.verify(password, self.hashed_password)
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    hashed_password: str
+
+    projects: List["Project"] = Relationship(back_populates="owner")
+
+class UserCreate(UserBase):
+    password: str
+
+class UserRead(UserBase):
+    id: int

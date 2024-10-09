@@ -1,11 +1,24 @@
-from sqlalchemy import Column, Integer, String, ForeignKey
-from sqlalchemy.orm import relationship
-from app.database import Base
+# app/models/note.py
+from sqlmodel import SQLModel, Field, Relationship
+from typing import Optional
+from datetime import datetime
+from app.models.task import Task
 
-class Note(Base):
+class NoteBase(SQLModel):
+    content: str
+
+class Note(NoteBase, table=True):
     __tablename__ = "notes"
-    id = Column(Integer, primary_key=True, index=True)
-    content = Column(Text)
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
-    task_id = Column(Integer, ForeignKey("tasks.id"))
-    task = relationship("Task", back_populates="notes")
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    task_id: int = Field(foreign_key="tasks.id")
+
+    task: Optional[Task] = Relationship(back_populates="notes")
+
+class NoteCreate(NoteBase):
+    task_id: int
+
+class NoteRead(NoteBase):
+    id: int
+    created_at: datetime
