@@ -10,6 +10,7 @@ class User(UserBase, table=True):
     __tablename__ = "users"
 
     id: Optional[int] = Field(default=None, primary_key=True)
+    name: str = Field(index=True)
     hashed_password: str
 
     projects: List["Project"] = Relationship(back_populates="owner")

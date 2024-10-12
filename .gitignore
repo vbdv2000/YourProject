@@ -1,0 +1,5 @@
+db/
+_pycache_
+.vscode
+secrets/*
+!secrets/example.env
