@@ -11,6 +11,7 @@ class Note(NoteBase, table=True):
     __tablename__ = "notes"
 
     id: Optional[int] = Field(default=None, primary_key=True)
+    updated_at: datetime = Field(default_factory=datetime.utcnow, index=True)
     created_at: datetime = Field(default_factory=datetime.utcnow, index=True)
     task_id: int = Field(foreign_key="tasks.id", index=True)
 
@@ -21,4 +22,5 @@ class NoteCreate(NoteBase):
 
 class NoteRead(NoteBase):
     id: int
+    updated_at: datetime
     created_at: datetime

@@ -14,7 +14,8 @@ class Task(TaskBase, table=True):
     __tablename__ = "tasks"
 
     id: Optional[int] = Field(default=None, primary_key=True)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow, index=True)
+    created_at: datetime = Field(default_factory=datetime.utcnow, index=True)
     project_id: int = Field(foreign_key="projects.id", index=True)  
     status: str = Field(index=True)
     due_date: datetime = Field(index=True)
@@ -27,4 +28,5 @@ class TaskCreate(TaskBase):
 
 class TaskRead(TaskBase):
     id: int
+    updated_at: datetime
     created_at: datetime
