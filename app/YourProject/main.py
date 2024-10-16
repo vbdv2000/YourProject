@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException, Query
-from sqlmodel import SQLModel, Session, select
+from fastapi.security import OAuth2PasswordRequestForm
+from sqlmodel import Session, select
 from YourProject.database import get_session
 from YourProject.models import (
     User, UserCreate, UserRead,
@@ -7,18 +8,30 @@ from YourProject.models import (
     Task, TaskCreate, TaskRead,
     Note, NoteCreate, NoteRead
 )
+from YourProject.auth import hash_password, login_for_access_token, get_current_user
 from pydantic import BaseModel, Field
 from typing import List, Optional
 from typing_extensions import Annotated, Literal
 
 app = FastAPI()
 
-# Clase para manejar los filtros comunes
+# Route to login and get the JWT token
+@app.post("/token")
+async def login(form_data: OAuth2PasswordRequestForm = Depends()):
+    return await login_for_access_token(form_data)
+
+# Example of a protected route that requires a valid JWT token
+@app.get("/users/me", response_model=UserRead)
+async def get_user_me(current_user: User = Depends(get_current_user)):
+    return current_user
+
+
+# Manage Filters
 class FilterParams(BaseModel):
     limit: int = Field(100, gt=0, le=100)
     offset: int = Field(0, ge=0)
-    order_by: Literal["created_at", "updated_at"] = "created_at"  # Ordenar por fecha de creación o actualización
-    tags: Optional[List[str]] = []  # Filtro opcional de tags (solo si es aplicable)
+    order_by: Literal["created_at", "updated_at"] = "created_at"
+    tags: Optional[List[str]] = []
 
 
 # User Endpoints
@@ -33,8 +46,9 @@ def create_user(user: UserCreate, session: Session = Depends(get_session)):
 
 @app.get("/users", response_model=List[UserRead])
 def get_users(filter_query: Annotated[FilterParams, Query()], session: Session = Depends(get_session)):
-    query = select(User).offset(filter_query.offset).limit(filter_query.limit)
+    query = select(User).offset(filter_query.offset).limit(filter_query.limit).order_by(filter_query.order_by)
     users = session.exec(query).all()
+
     return users
 
 @app.get("/users/{user_id}", response_model=UserRead)
@@ -56,15 +70,9 @@ def create_project(project: ProjectCreate, session: Session = Depends(get_sessio
 
 @app.get("/projects", response_model=List[ProjectRead])
 def get_projects(filter_query: Annotated[FilterParams, Query()], session: Session = Depends(get_session)):
-    query = select(Project).offset(filter_query.offset).limit(filter_query.limit)
-
-    # Ordenar si el modelo tiene `created_at` o `updated_at`
-    if filter_query.order_by == "created_at":
-        query = query.order_by(Project.created_at)
-    elif filter_query.order_by == "updated_at":
-        query = query.order_by(Project.updated_at)
-
+    query = select(Project).offset(filter_query.offset).limit(filter_query.limit).order_by(filter_query.order_by)
     projects = session.exec(query).all()
+
     return projects
 
 @app.get("/projects/{project_id}", response_model=ProjectRead)
@@ -86,15 +94,9 @@ def create_task(task: TaskCreate, session: Session = Depends(get_session)):
 
 @app.get("/tasks", response_model=List[TaskRead])
 def get_tasks(filter_query: Annotated[FilterParams, Query()], session: Session = Depends(get_session)):
-    query = select(Task).offset(filter_query.offset).limit(filter_query.limit)
-
-    # Ordenar si el modelo tiene `created_at` o `updated_at`
-    if filter_query.order_by == "created_at":
-        query = query.order_by(Task.created_at)
-    elif filter_query.order_by == "updated_at":
-        query = query.order_by(Task.updated_at)
-
+    query = select(Task).offset(filter_query.offset).limit(filter_query.limit).order_by(filter_query.order_by)
     tasks = session.exec(query).all()
+
     return tasks
 
 @app.get("/tasks/{task_id}", response_model=TaskRead)
@@ -116,15 +118,9 @@ def create_note(note: NoteCreate, session: Session = Depends(get_session)):
 
 @app.get("/notes", response_model=List[NoteRead])
 def get_notes(filter_query: Annotated[FilterParams, Query()], session: Session = Depends(get_session)):
-    query = select(Note).offset(filter_query.offset).limit(filter_query.limit)
-
-    # Ordenar si el modelo tiene `created_at` o `updated_at`
-    if filter_query.order_by == "created_at":
-        query = query.order_by(Note.created_at)
-    elif filter_query.order_by == "updated_at":
-        query = query.order_by(Note.updated_at)
-
+    query = select(Note).offset(filter_query.offset).limit(filter_query.limit).order_by(filter_query.order_by)
     notes = session.exec(query).all()
+
     return notes
 
 @app.get("/notes/{note_id}", response_model=NoteRead)
@@ -133,9 +129,3 @@ def get_note_by_id(note_id: int, session: Session = Depends(get_session)):
     if not note:
         raise HTTPException(status_code=404, detail="Note not found")
     return note
-
-
-# Utility function to hash passwords
-def hash_password(password: str) -> str:
-    # Implement password hashing (e.g., using bcrypt)
-    return password  # Placeholder, replace with actual hashing
